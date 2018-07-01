@@ -574,8 +574,8 @@ UBYTE token;
                 break;
         }
     } else {
-        ULONG end = hz_200 + SD_READ_TIMEOUT_TICKS;
-        while(hz_200 < end) {
+        ULONG end = get_hz_200() + SD_READ_TIMEOUT_TICKS;
+        while(get_hz_200() < end) {
             token = spi_recv_byte();
             if (token != 0xff)
                 break;
@@ -826,9 +826,9 @@ ULONG pattern;
  */
 static int sd_wait_for_not_idle(UBYTE cmd,ULONG arg)
 {
-ULONG end = hz_200 + SD_INIT_TIMEOUT_TICKS;
+ULONG end = get_hz_200() + SD_INIT_TIMEOUT_TICKS;
 
-    while(hz_200 < end) {
+    while(get_hz_200() < end) {
         if (cmd == ACMD41)
             if (sd_command(CMD55,0L,0,R1,response) < 0)
                 break;
@@ -851,10 +851,10 @@ ULONG end = hz_200 + SD_INIT_TIMEOUT_TICKS;
  */
 static int sd_wait_for_not_busy(LONG timeout)
 {
-ULONG end = hz_200 + timeout;
+ULONG end = get_hz_200() + timeout;
 UBYTE c;
 
-    while(hz_200 < end) {
+    while(get_hz_200() < end) {
         c = spi_recv_byte();
         if (c != 0x00)
             return 0;
@@ -873,10 +873,10 @@ UBYTE c;
  */
 static int sd_wait_for_ready(LONG timeout)
 {
-ULONG end = hz_200 + timeout;
+ULONG end = get_hz_200() + timeout;
 UBYTE c;
 
-    while(hz_200 < end) {
+    while(get_hz_200() < end) {
         c = spi_recv_byte();
         if (c == 0xff)
             return 0;

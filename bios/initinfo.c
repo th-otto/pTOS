@@ -217,7 +217,7 @@ static void cprint_devices(WORD dev)
     pair_start(_("GEMDOS drives"));
 
     for (i = 0, mask = 1L; i < BLKDEVNUM; i++, mask <<= 1) {
-        if (drvbits & mask) {
+        if (get_unaligned(drvbits) & mask) {
             if (i == dev)
                 cprintf("\033p");
             cprintf("%c",'A'+i);
@@ -264,7 +264,7 @@ WORD initinfo(ULONG *pshiftbits)
 #endif
     int i;
     WORD olddev = -1, dev = bootdev;
-    long stramsize = (long)phystop;
+    long stramsize = (long)get_unaligned(phystop);
 #if CONF_WITH_ALT_RAM
     long altramsize = total_alt_ram();
 #endif
@@ -379,7 +379,7 @@ WORD initinfo(ULONG *pshiftbits)
     while (1)
     {
         /* Wait until timeout or keypress */
-        long end = hz_200 + INITINFO_DURATION * 200UL;
+        ULONG end = get_hz_200() + INITINFO_DURATION * 200UL;
 
         olddev = dev;
 
@@ -395,7 +395,7 @@ WORD initinfo(ULONG *pshiftbits)
             stop_until_interrupt();
 #endif
         }
-        while (hz_200 < end);
+        while (get_hz_200() < end);
 
         /* Wait while Shift is pressed, and normal key is not pressed */
         while ((shiftbits & MODE_SHIFT) && !bconstat2())

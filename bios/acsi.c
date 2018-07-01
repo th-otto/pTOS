@@ -96,7 +96,7 @@ void acsi_init(void)
      */
     loopcount_delay = 15 * loopcount_1_msec / 1000;
 
-    next_acsi_time = hz_200;    /* immediate :-) */
+    next_acsi_time = get_hz_200();    /* immediate :-) */
 }
 
 LONG acsi_rw(WORD rw, LONG sector, WORD count, UBYTE *buf, WORD dev)
@@ -121,7 +121,7 @@ LONG acsi_rw(WORD rw, LONG sector, WORD count, UBYTE *buf, WORD dev)
             maxsecs_per_io = FRB_SECS;
 #endif
         if (!tmp_buf) {
-            tmp_buf = dskbufp;
+            tmp_buf = get_unaligned_ptr(dskbufp);
             if (maxsecs_per_io > DSKBUF_SECS)
                 maxsecs_per_io = DSKBUF_SECS;
         }
@@ -198,7 +198,7 @@ static LONG acsi_capacity(WORD dev, ULONG *info)
     acsi_begin();
 
     /* load DMA base address -> internal disk buffer */
-    set_dma_addr(dskbufp);
+    set_dma_addr(get_unaligned_ptr(dskbufp));
 
     cdb[0] = 0x25;          /* set up Read Capacity cdb */
     memset(cdb+1,0x00,9);
@@ -206,10 +206,10 @@ static LONG acsi_capacity(WORD dev, ULONG *info)
 
     acsi_end();
 
-    invalidate_data_cache(dskbufp,sizeof(ULONG)*4);
+    invalidate_data_cache(get_unaligned_ptr(dskbufp),sizeof(ULONG)*4);
 
     if (status == 0) {
-        const ULONG *data = (const ULONG *)dskbufp;
+        const ULONG *data = (const ULONG *)get_unaligned_ptr(dskbufp);
         info[0] = data[0] + 1;  /* data[0] is number of last sector */
         info[1] = data[1];
     }
@@ -235,7 +235,7 @@ static LONG acsi_testunit(WORD dev)
 /* must call this before manipulating any ACSI-related hardware */
 static void acsi_begin(void)
 {
-    while(hz_200 < next_acsi_time) {    /* wait until safe */
+    while(get_hz_200() < next_acsi_time) {    /* wait until safe */
 #if USE_STOP_INSN_TO_FREE_HOST_CPU
         stop_until_interrupt();
 #endif
@@ -251,7 +251,7 @@ static void acsi_end(void)
     ACSIDMA->s.control = DMA_FLOPPY;
     flock = 0;
 
-    next_acsi_time = hz_200 + INTER_IO_TIME;    /* next safe time */
+    next_acsi_time = get_hz_200() + INTER_IO_TIME;    /* next safe time */
 }
 
 /*
@@ -332,7 +332,7 @@ static int send_command(UBYTE *inputcdb,WORD cdblen,WORD rw,WORD dev,WORD cnt,UW
      */
     control |= DMA_CS_ACSI;
     do {
-        while(hz_200 < next_acsi_time) {    /* wait until safe */
+        while(get_hz_200() < next_acsi_time) {    /* wait until safe */
 #if USE_STOP_INSN_TO_FREE_HOST_CPU
             stop_until_interrupt();
 #endif
@@ -350,7 +350,7 @@ static int send_command(UBYTE *inputcdb,WORD cdblen,WORD rw,WORD dev,WORD cnt,UW
         /* send the last byte & wait for completion of DMA */
         dma_send_byte(*p,control&0xff00);
         status = timeout_gpip(LARGE_TIMEOUT);
-        next_acsi_time = hz_200 + INTER_IO_TIME;    /* next safe time */
+        next_acsi_time = get_hz_200() + INTER_IO_TIME;    /* next safe time */
         if (status)
             return -1;
 

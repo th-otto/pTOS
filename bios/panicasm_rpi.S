@@ -83,10 +83,23 @@ _kill_program:
         svc     1
         // drop thru into warm reset
 
+/* void cold_reset(void)
+ * Invalidate the RAM configuration and reset the computer to the ROM OS.
+ * It is important to flush the data cache so the values of the magic variables
+ * are really pushed to the RAM. Next OS may use different cache settings.
+ */
+_cold_reset:
+	    mov     r0,#0
+	    set_unaligned r0,resvalid,r1
+	    set_unaligned r0,resvector,r1
+#if CONF_DETECT_FIRST_BOOT_WITHOUT_MEMCONF
+        ldr     r1,=_warm_magic
+        str     r0,[r1]     // Next boot will be a first boot
+#endif
+	    
 /* void warm_reset(void)
  * Restart this OS
  */
-_cold_reset:
 _warm_reset:
         bl      _flush_data_cache
         b       _main

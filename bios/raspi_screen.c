@@ -173,14 +173,15 @@ void raspi_vcmem_init(void)
 	bzero(sysvars_start, sysvars_end - sysvars_start);
 	
 	/* Store the ST-RAM parameters in the ST-RAM itself */
-	phystop = (UBYTE *)(init_tags.get_arm_memory.value1 + init_tags.get_arm_memory.value2);
+	set_unaligned(phystop, init_tags.get_arm_memory.value1 + init_tags.get_arm_memory.value2);
 
-   /*
-    * Clear the BSS segment.
-    * Our stack is explicitly set outside the BSS, so this is safe:
-    * bzero() will be able to return.
-    */
-    bzero(_bss, _ebss - _bss);
+    /* Make ST-RAM configuration valid */
+    set_unaligned(memvalid, 0x752019f3);
+    set_unaligned(memval2, 0x237698aa);
+    set_unaligned(memval3, 0x5555aaaa);
+#if CONF_DETECT_FIRST_BOOT_WITHOUT_MEMCONF
+    warm_magic = 0x5741524D;
+#endif
 }
 
 

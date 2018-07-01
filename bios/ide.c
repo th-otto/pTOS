@@ -489,11 +489,11 @@ static int ide_device_exists(WORD dev)
  */
 static int wait_for_signature(volatile struct IDE *interface,LONG timeout)
 {
-    LONG next = hz_200 + timeout;
+    LONG next = get_hz_200() + timeout;
     UWORD n;
 
     DELAY_400NS;
-    while(hz_200 < next) {
+    while(get_hz_200() < next) {
         n = IDE_READ_SECTOR_NUMBER_SECTOR_COUNT();
         if (n == 0x0101)
             return 0;
@@ -614,12 +614,12 @@ static void ide_detect_devices(UWORD ifnum)
  */
 static int wait_for_not_BSY(volatile struct IDE *interface,LONG timeout)
 {
-    LONG next = hz_200 + timeout;
+    LONG next = get_hz_200() + timeout;
 
     KDEBUG(("wait_for_not_BSY(%p, %ld)\n", interface, timeout));
 
     DELAY_400NS;
-    while(hz_200 < next) {
+    while(get_hz_200() < next) {
         if ((IDE_READ_ALT_STATUS() & IDE_STATUS_BSY) == 0)
             return 0;
     }
@@ -630,10 +630,10 @@ static int wait_for_not_BSY(volatile struct IDE *interface,LONG timeout)
 
 static int wait_for_not_BSY_not_DRQ(volatile struct IDE *interface,LONG timeout)
 {
-    LONG next = hz_200 + timeout;
+    LONG next = get_hz_200() + timeout;
 
     DELAY_400NS;
-    while(hz_200 < next) {
+    while(get_hz_200() < next) {
         if ((IDE_READ_ALT_STATUS() & (IDE_STATUS_BSY|IDE_STATUS_DRQ)) == 0)
             return 0;
     }
@@ -1030,7 +1030,7 @@ LONG ide_rw(WORD rw,LONG sector,WORD count,UBYTE *buf,WORD dev,BOOL need_byteswa
 
         numsecs = (count>maxsecs_per_io) ? maxsecs_per_io : count;
 
-        p = use_tmpbuf ? dskbufp : buf;
+        p = use_tmpbuf ? get_unaligned_ptr(dskbufp) : buf;
         if (rw && use_tmpbuf)
             memcpy(p,buf,(LONG)numsecs*SECTOR_SIZE);
 

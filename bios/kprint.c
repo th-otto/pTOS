@@ -342,7 +342,7 @@ void dopanic(const char *fmt, ...)
             ULONG spsr;
         } *s = (void*)proc_stk;
 
-        pc = s->pc;
+        pc = (UWORD *)s->pc;
         sr = s->spsr;
 
         if (proc_enum >= 2 && proc_enum < ARRAY_SIZE(exc_messages)) {
@@ -386,7 +386,7 @@ void dopanic(const char *fmt, ...)
         kcprintf("sr=%04x pc=%08lx\n",
                  s->sr, (ULONG)s->pc);
     }
-#else
+#elif defined(__m68k__)
     } else if (mcpu == 0 && (proc_enum == 2 || proc_enum == 3)) {
         /* 68000 Bus or Address Error */
         struct {
@@ -627,7 +627,7 @@ void dopanic(const char *fmt, ...)
     bconin2();
     cprintf("\n");
 
-    savptr = (LONG) trap_save_area; /* in case running program has altered it */
+    set_unaligned(savptr, (LONG) trap_save_area); /* in case running program has altered it */
 
     /*
      * we are still running with the PD of the failing program,

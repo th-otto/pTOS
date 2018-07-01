@@ -156,4 +156,113 @@ extern ULONG warm_magic;
 extern UBYTE stkbot[]; /* BIOS internal stack */
 extern UBYTE stktop[];
 
+
+/*
+ * on arm, we cannot access some system variables directly
+ * that are long/pointer sized and not properly aligned.
+ *
+ * These include:
+ * - resvalid
+ * - resvector
+ * - _phystop
+ * - _membot
+ * - _memtop
+ * - _memval2/memval2
+ * - _v_bas_ad
+ * - _vblqueue
+ * - _colorptr
+ * - _screenpt
+ * - _vbclock
+ * - _frclock
+ * - _hdv_init
+ * - _swv_vec
+ * - _hdv_bpb
+ * - _hdv_rw
+ * - _hdv_boot
+ * - _hdv_mediach
+ * - trp14ret (unused)
+ * - criticret (unused in EmuTOS)
+ * - _savptr
+ * - sav_context (unused in EmuTOS)
+ * - _bufl
+ * - _hz_200
+ * - the_env (unused in EmuTOS)
+ * - _drvbits
+ * - _dskbufp
+ * - _autopath (unused in EmuTOS)
+ * - _vbl_list
+ * - _sysbase
+ * - _shell_p (unused in EmuTOS)
+ * - end_os
+ * - _exec_os
+ * - _dump_vec
+ * - _prt_stat
+ * - _prt_vec
+ * - _aux_stat
+ * - _aux_vec
+ * - _pun_ptr
+ * - _memval3/memval3
+ * -bconstat_vec/_bconin_vec/_bcostat_vec/_bconout_vec
+ *
+ * - some of the Line-A variables
+ *
+ * Following variables are also unaligned, but are not handled this way:
+ * - _themd
+ * - ____md (unused in EmuTOS)
+ * - _bufl
+ *
+ * Note that the macros only handle the case of longs not being
+ * aligned on a 4-byte address, they still assume that the address
+ * is even.
+ */
+
+#if (defined(__arm__) || defined(__aarch64__)) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+static __inline ULONG __get_unaligned(volatile ULONG *var)
+{
+	volatile UWORD *p = (volatile UWORD *)var;
+	return ((ULONG)p[1] << 16) | ((ULONG)p[0]);
+}
+#define get_unaligned(var) __get_unaligned((volatile ULONG *)(&(var)))
+#define get_unaligned_ptr(var) (UBYTE *)get_unaligned(var)
+
+static __inline void __set_unaligned(volatile ULONG *var, ULONG val)
+{
+	volatile UWORD *p = (volatile UWORD *)var;
+	p[1] = val >> 16;
+	p[0] = val;
+}
+#define set_unaligned(var, val) __set_unaligned((volatile ULONG *)(&(var)), (ULONG)(val))
+
+#elif (defined(__arm__) || defined(__aarch64__)) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+static __inline ULONG __get_unaligned(volatile ULONG *var)
+{
+	volatile UWORD *p = (volatile UWORD *)var;
+	return ((ULONG)p[0] << 16) | ((ULONG)p[1]);
+}
+#define get_unaligned(var) __get_unaligned((volatile ULONG *)(&(var)))
+#define get_unaligned_ptr(var) (UBYTE *)get_unaligned(var)
+
+static __inline void __set_unaligned(volatile ULONG *var, ULONG val)
+{
+	volatile UWORD *p = (volatile UWORD *)var;
+	p[0] = val >> 16;
+	p[1] = val;
+}
+#define set_unaligned(var, val) __set_unaligned((volatile ULONG *)(&(var)), (ULONG)(val))
+
+#else
+
+#define get_unaligned(var) var
+#define get_unaligned_ptr(var) var
+#define set_unaligned(var, val) var = val
+
+#endif
+
+
+/*
+ * some handy shortcuts for commonly used variables
+ */
+#define get_hz_200() get_unaligned(hz_200)
+#define set_hz_200(val) set_unaligned(hz_200, val)
+
 #endif /* TOSVARS_H */

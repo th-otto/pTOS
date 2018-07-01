@@ -97,19 +97,19 @@ UWORD compute_cksum(const UWORD *buf)
 void blkdev_init(void)
 {
     /* initialize dskbufp for the block buffer */
-    dskbufp = dskbuf;
-    KDEBUG(("dskbufp = %p\n",dskbufp));
+    set_unaligned(dskbufp, dskbuf);
+    KDEBUG(("dskbufp = %p\n",get_unaligned_ptr(dskbufp)));
 
     /* setup booting related vectors */
 #if CONF_WITH_BOOT_SECTOR
-    hdv_boot    = blkdev_hdv_boot;
+    set_unaligned(hdv_boot, blkdev_hdv_boot);
 #endif
-    hdv_init    = 0;    /* blkdev_hdv_init; */
+    set_unaligned(hdv_init, 0);    /* blkdev_hdv_init; */
 
     /* setup general block device vectors */
-    hdv_bpb     = blkdev_getbpb;
-    hdv_rw      = blkdev_rwabs;
-    hdv_mediach = blkdev_mediach;
+    set_unaligned(hdv_bpb, blkdev_getbpb);
+    set_unaligned(hdv_rw, blkdev_rwabs);
+    set_unaligned(hdv_mediach, blkdev_mediach);
 
     /* setting drvbits */
     blkdev_hdv_init();
@@ -153,7 +153,7 @@ static void pun_info_setup(void)
     pun_info.version_num = 0x300;      /* AHDI v3.00 */
     pun_info.max_sect_siz = (max_size > CONF_LOGSEC_SIZE) ? max_size : CONF_LOGSEC_SIZE;
 
-    pun_ptr = &pun_info;
+    set_unaligned(pun_ptr, &pun_info);
 
     KDEBUG(("PUN INFO: max sector size = %d\n",pun_info.max_sect_siz));
 }
@@ -167,7 +167,7 @@ static void blkdev_hdv_init(void)
 {
     /* Start with no drives. This matters for EmuTOS-RAM, because the system
      * variables are not automatically reinitialized. */
-    drvbits = 0;
+    set_unaligned(drvbits, 0);
 
     /* Detect and initialize floppy drives */
     flop_hdv_init();
@@ -214,7 +214,7 @@ static void bus_init(void)
  */
 LONG blkdev_boot(void)
 {
-    KDEBUG(("drvbits = %08lx\n",drvbits));
+    KDEBUG(("drvbits = %08lx\n",get_unaligned(drvbits)));
 
     /*
      * if the user decided to skip hard drive boot, we set the
@@ -252,8 +252,8 @@ static LONG blkdev_hdv_boot(void)
     KDEBUG(("bootcheck() returns %ld\n",err));
 
     if (err == 0) {     /* if bootable, jump into it */
-        invalidate_instruction_cache(dskbufp,SECTOR_SIZE);
-        regsafe_call(dskbufp);
+        invalidate_instruction_cache(get_unaligned_ptr(dskbufp),SECTOR_SIZE);
+        regsafe_call(get_unaligned_ptr(dskbufp));
     }
 
     return err;         /* may never be reached, if booting */
@@ -270,11 +270,11 @@ static LONG bootcheck(void)
     if (err)
         return 3;   /* unreadable */
 
-    if (compute_cksum((const UWORD *)dskbufp) != 0x1234)
+    if (compute_cksum((const UWORD *)get_unaligned_ptr(dskbufp)) != 0x1234)
         return 4;   /* not valid boot sector */
 
 #ifdef TARGET_FLOPPY
-    if (!strncmp((const char*)(dskbufp + 2), "EmuTOS", 6))
+    if (!strncmp((const char*)(get_unaligned_ptr(dskbufp) + 2), "EmuTOS", 6))
     {
         /* Do not allow EmuTOS floppy to reload itself,
          * otherwise there will be an infinite loop. */
@@ -294,7 +294,7 @@ static WORD hd_boot_read(void)
 {
     BLKDEV *b = &blkdev[bootdev];
 
-    return (WORD)disk_rw(b->unit,RW_READ,b->start,1,dskbufp);
+    return (WORD)disk_rw(b->unit,RW_READ,b->start,1,get_unaligned_ptr(dskbufp));
 }
 #endif
 
@@ -378,7 +378,7 @@ int add_partition(UWORD unit, LONG *devices_available, char id[], ULONG start, U
     if (strcmp(b->id, "GEM") == 0
         || strcmp(b->id, "BGM") == 0)
 */
-        drvbits |= (1L << logical);
+        set_unaligned(drvbits, get_unaligned(drvbits) | (1L << logical));
 
     *devices_available &= ~(1L << logical); /* mark device as used */
 
@@ -507,7 +507,7 @@ static LONG blkdev_rwabs(WORD rw, UBYTE *buf, WORD cnt, WORD recnr, WORD dev, LO
         instruction_cache_kludge(bufstart,cnt<<psshift);
 
     if (retval == 0)
-        units[unit].last_access = hz_200;
+        units[unit].last_access = get_hz_200();
 
     if (retval == E_CHNG)
         if (unit >= NUMFLOPPIES)
@@ -587,7 +587,7 @@ LONG blkdev_getbpb(WORD dev)
     /* now we can read the bootsector using the physical mode */
     do {
         ret = blkdev_rwabs(RW_READ | RW_NOMEDIACH | RW_NOTRANSLATE,
-                           dskbufp, 1, -1, unit, bdev->start);
+                           get_unaligned_ptr(dskbufp), 1, -1, unit, bdev->start);
         if (ret < 0L)
             ret = call_etv_critic((WORD)ret,dev);
     } while(ret == CRITIC_RETRY_REQUEST);
@@ -595,8 +595,8 @@ LONG blkdev_getbpb(WORD dev)
     if (ret < 0L)
         return 0L;  /* error */
 
-    b = (struct bs *)dskbufp;
-    b16 = (struct fat16_bs *)dskbufp;
+    b = (struct bs *)get_unaligned_ptr(dskbufp);
+    b16 = (struct fat16_bs *)b;
 
     if (b->spc == 0)
         return 0L;
@@ -728,7 +728,7 @@ static LONG blkdev_mediach(WORD dev)
 
 LONG blkdev_drvmap(void)
 {
-    return(drvbits);
+    return(get_unaligned(drvbits));
 }
 
 
@@ -741,5 +741,5 @@ LONG blkdev_drvmap(void)
 
 LONG blkdev_avail(WORD dev)
 {
-    return((1L << dev) & drvbits);
+    return((1L << dev) & get_unaligned(drvbits));
 }

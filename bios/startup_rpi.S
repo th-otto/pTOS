@@ -60,6 +60,7 @@
 2:
 
 	.endm
+
 	.text
 
 // ===========================================================================
@@ -232,6 +233,22 @@ _core0:
     orr     r2, #1 << 0          /* MMU enable */
     mcr     p15, #0, r2, c1, c0, #0 /* Write Control Register Configuration Data */
     #endif
+
+/*
+ * Check, if we should jump to a reset vector after warmboot
+ */
+
+resetvec:
+    get_unaligned r2,resvalid,r1
+    ldr r1, =0x31415926
+    cmp r1, r2                  // Jump to resetvector?
+    mov r0, #0
+    bne noreset                 // No --> noreset
+    get_unaligned ip,resvector,r1
+    cmp ip, r0                  // Address null? Yes --> noreset
+    beq noreset
+    blx ip                      // jump to resvec
+noreset:
 
 	ldr	r0, =arm_vectors
 	mcr	p15, 0, r0, c12, c0, 0		/* set VBAR to our table at the start of the os */

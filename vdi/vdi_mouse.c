@@ -710,6 +710,7 @@ void vdimouse_init(void)
         BYTE xparam;
         BYTE yparam;
     } mouse_params = {0, 0, 1, 1};
+    LONG *p;
 
     /* Input must be initialized here and not in init_wk */
     loc_mode = 0;               /* default is request mode  */
@@ -738,7 +739,8 @@ void vdimouse_init(void)
     newy = 0;                   /* set cursor y-coordinate to 0 */
 
     /* vblqueue points to start of vbl_list[] */
-    *vblqueue = (LONG)vb_draw;   /* set GEM VBL-routine to vbl_list[0] */
+    p = (LONG *)get_unaligned_ptr(vblqueue);
+    set_unaligned(*p, (LONG)vb_draw);   /* set GEM VBL-routine to vbl_list[0] */
 
     /* Initialize mouse via XBIOS in relative mode */
     Initmous(1, &mouse_params, mouse_int);
@@ -765,8 +767,8 @@ void vdimouse_exit(void)
     user_cur = do_nothing_ii;
     user_wheel = do_nothing_ii;
 
-    pointer = vblqueue;         /* vblqueue points to start of vbl_list[] */
-    *pointer = (LONG)vb_draw;   /* set GEM VBL-routine to vbl_list[0] */
+    pointer = (LONG *)get_unaligned_ptr(vblqueue);         /* vblqueue points to start of vbl_list[] */
+    set_unaligned(*pointer, (LONG)vb_draw);   /* set GEM VBL-routine to vbl_list[0] */
 
     /* disable mouse via XBIOS */
     Initmous(0, 0, 0);

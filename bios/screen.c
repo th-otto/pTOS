@@ -1003,7 +1003,7 @@ void setpalette(const UWORD *palettePtr)
     KDEBUG((")\n"));
 #endif
     /* next VBL will do this */
-    colorptr = palettePtr;
+    set_unaligned(colorptr, palettePtr);
 }
 
 /*
@@ -1040,8 +1040,8 @@ void vsync(void)
      */
 #endif
 
-    a = frclock;
-    while (frclock == a) {
+    a = get_unaligned(frclock);
+    while (get_unaligned(frclock) == a) {
 #if USE_STOP_INSN_TO_FREE_HOST_CPU
         stop_until_interrupt();
 #endif

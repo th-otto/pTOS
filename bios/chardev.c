@@ -68,22 +68,22 @@ int i;
 
     /* initialise bios device vectors */
     for (i = 0; i < NUM_CHAR_VECS; i++)
-        bconstat_vec[i] = bconstat_init[i];
+        set_unaligned(bconstat_vec[i], bconstat_init[i]);
     for (i = 0; i < NUM_CHAR_VECS; i++)
-        bconin_vec[i] = bconin_init[i];
+        set_unaligned(bconin_vec[i], bconin_init[i]);
     for (i = 0; i < NUM_CHAR_VECS; i++)
-        bcostat_vec[i] = bcostat_init[i];
+        set_unaligned(bcostat_vec[i], bcostat_init[i]);
     for (i = 0; i < NUM_CHAR_VECS; i++)
-        bconout_vec[i] = bconout_init[i];
+        set_unaligned(bconout_vec[i], bconout_init[i]);
 
     /* setup serial output functions */
-    aux_stat = dummy;
-    aux_vec = dummy;
+    set_unaligned(aux_stat, dummy);
+    set_unaligned(aux_vec, dummy);
 
     /* setup parallel output functions */
-    prt_stat = dummy;
-    prt_vec = dummy;
-    dump_vec = dummy;
+    set_unaligned(prt_stat, dummy);
+    set_unaligned(prt_vec, dummy);
+    set_unaligned(dump_vec, dummy);
 }
 
 

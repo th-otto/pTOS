@@ -348,7 +348,7 @@ void flop_hdv_init(void)
  */
 WORD flop_boot_read(void)
 {
-    return flopio(dskbufp,RW_READ,bootdev,1,0,0,1);
+    return flopio(get_unaligned_ptr(dskbufp),RW_READ,bootdev,1,0,0,1);
 }
 
 static void flop_add_drive(WORD dev)
@@ -383,7 +383,7 @@ static void flop_add_drive(WORD dev)
 
     /* OS variables */
     nflops++;
-    drvbits |= (1L << dev);
+    set_unaligned(drvbits, get_unaligned(drvbits) | (1L << dev));
 }
 
 static void flop_detect_drive(WORD dev)
@@ -398,7 +398,7 @@ static void flop_detect_drive(WORD dev)
 #ifdef MACHINE_AMIGA
     if (amiga_flop_detect_drive(dev)) {
         flop_add_drive(dev);
-        units[dev].last_access = hz_200;
+        units[dev].last_access = get_hz_200();
     }
     return;
 #endif
@@ -429,7 +429,7 @@ static void flop_detect_drive(WORD dev)
  */
 LONG flop_mediach(WORD dev)
 {
-    struct fat16_bs *bootsec = (struct fat16_bs *) dskbufp;
+    struct fat16_bs *bootsec = (struct fat16_bs *) get_unaligned_ptr(dskbufp);
     int unit;
 
     KDEBUG(("flop_mediach(%d)\n",dev));
@@ -476,7 +476,7 @@ LONG flop_mediach(WORD dev)
      * if less than half a second since last access, assume no mediachange
      */
     unit = blkdev[dev].unit;
-    if (hz_200 < units[unit].last_access + CLOCKS_PER_SEC/2)
+    if (get_hz_200() < units[unit].last_access + CLOCKS_PER_SEC/2)
         return MEDIANOCHANGE;
 
     /*
@@ -780,7 +780,7 @@ LONG flopver(WORD *buf, LONG filler, WORD dev,
         }
     }
 
-    units[dev].last_access = hz_200;
+    units[dev].last_access = get_hz_200();
 
 #elif CONF_WITH_FDC
 
@@ -1054,7 +1054,7 @@ static WORD flopio(UBYTE *userbuf, WORD rw, WORD dev,
 
 #ifdef MACHINE_AMIGA
     err = amiga_floprw(userbuf, rw, dev, sect, track, side, count);
-    units[dev].last_access = hz_200;
+    units[dev].last_access = get_hz_200();
 #elif CONF_WITH_FDC
     floplock(dev);
 
@@ -1078,7 +1078,7 @@ static WORD flopio(UBYTE *userbuf, WORD rw, WORD dev,
      * buffer size.
      */
     if (IS_ODD_POINTER(userbuf) || !IS_STRAM_POINTER(userbuf)) {
-        tmpbuf = dskbufp;
+        tmpbuf = get_unaligned_ptr(dskbufp);
     }
 
     /*
@@ -1161,13 +1161,13 @@ static WORD flopio_ver(UBYTE *buf, WORD rw, WORD dev, WORD sect, WORD track, WOR
 
     if ((rw & RW_WRITE) && (err == 0) && fverify)
     {
-        err = flopver((WORD *)dskbufp, 0L, dev, sect, track, side, count);
+        err = flopver((WORD *)get_unaligned_ptr(dskbufp), 0L, dev, sect, track, side, count);
         /*
          * flopver() returns 0 if it only encounters EREADF/ESECNF, but
          * the buffer will contain one or more non-zero sector numbers.
          * so in this case we set an error code.
          */
-        if ((err == 0) && (*(WORD *)dskbufp != 0))
+        if ((err == 0) && (*(WORD *)get_unaligned_ptr(dskbufp) != 0))
             err = EBADSF;
     }
 
@@ -1282,7 +1282,7 @@ static void flopunlk(void)
      */
     dummy_seek();
 
-    now = hz_200;       /* only fetch it once */
+    now = get_hz_200();       /* only fetch it once */
     if (cur_dev >= 0)
         units[cur_dev].last_access = now;
     deselect_time = now + DESELECT_TIMEOUT;
@@ -1310,7 +1310,7 @@ void flopvbl(void)
         return;
 
     /* only do something every 8th VBL */
-    if (frclock & 7)
+    if (get_unaligned(frclock) & 7)
         return;
 
     /*
@@ -1318,7 +1318,7 @@ void flopvbl(void)
      * we check one floppy every 8 VBLs, like Atari TOS
      */
     if ((nflops == 2)           /* if there are 2 floppies and */
-     && (frclock & 0x0008))     /* it's an odd multiple of 8,  */
+     && (get_unaligned(frclock) & 0x0008))     /* it's an odd multiple of 8,  */
         n = 1;                  /* check floppy 1              */
     else n = 0;
 
@@ -1352,7 +1352,7 @@ void flopvbl(void)
      * 2. the motor is off (due to the FDC timing out after 10
      *    revolutions)
      */
-    if ((hz_200 > deselect_time) || ((status & FDC_MOTORON) == 0)) {
+    if ((get_hz_200() > deselect_time) || ((status & FDC_MOTORON) == 0)) {
         deselect();
         motor_on = 0;
     }

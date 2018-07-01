@@ -234,7 +234,7 @@ LONG disk_mediach(UWORD unit)
     /*
      * if less than half a second since last access, assume no mediachange
      */
-    if (hz_200 < units[unit].last_access + CLOCKS_PER_SEC/2)
+    if (get_hz_200() < units[unit].last_access + CLOCKS_PER_SEC/2)
         return MEDIANOCHANGE;
 
     /* get bus and relative device */

@@ -65,14 +65,14 @@ void bmem_init(void)
     KDEBUG(("_end_os_stram = %p\n", _end_os_stram));
 
     /* Start of available ST-RAM */
-    end_os = _end_os_stram;
-    membot = end_os;
-    KDEBUG(("       membot = %p\n", membot));
+    set_unaligned(end_os, _end_os_stram);
+    set_unaligned(membot, _end_os_stram);
+    KDEBUG(("       membot = %p\n", get_unaligned_ptr(membot)));
 
     /* End of available ST-RAM */
     /* The screen buffer will be allocated later */
-    memtop = phystop;
-    KDEBUG(("       memtop = %p\n", memtop));
+    set_unaligned(memtop, get_unaligned(phystop));
+    KDEBUG(("       memtop = %p\n", get_unaligned_ptr(memtop)));
 
 #if CONF_WITH_STATIC_ALT_RAM
     KDEBUG(("_static_altram_start = %p\n", _static_altram_start));
@@ -96,7 +96,7 @@ UBYTE *balloc_stram(ULONG size, BOOL top)
 {
     UBYTE *ret;
 
-    KDEBUG(("before balloc_stram: membot=%p, memtop=%p\n", membot, memtop));
+    KDEBUG(("before balloc_stram: membot=%p, memtop=%p\n", get_unaligned_ptr(membot), get_unaligned_ptr(memtop)));
     KDEBUG(("balloc_stram(%lu, %d)\n", size, top));
 
 #if DBG_BALLOC
@@ -108,27 +108,27 @@ UBYTE *balloc_stram(ULONG size, BOOL top)
      * Alignment on long boundaries is faster in FastRAM. */
     size = (size + 3) & ~3;
 
-    if (memtop - membot < size)
+    if (get_unaligned_ptr(memtop) - get_unaligned_ptr(membot) < size)
         panic("balloc_stram(%lu): not enough memory\n", size);
 
     if (top)
     {
         /* Allocate the new buffer at the top of the ST-RAM */
-        memtop -= size;
-        ret = memtop;
+        ret = get_unaligned_ptr(memtop) - size;
+        set_unaligned(memtop, ret);
     }
     else
     {
         /* Allocate the new buffer at the bottom of the ST-RAM */
-        ret = membot;
-        membot += size;
+        ret = get_unaligned_ptr(membot);
+        set_unaligned(membot, ret + size);
 
         /* Rule: Update end_os whenever membot changes */
-        end_os = membot;
+        set_unaligned(end_os, get_unaligned_ptr(membot));
     }
 
     KDEBUG(("balloc_stram(%lu, %d) returns %p\n", size, top, ret));
-    KDEBUG((" after balloc_stram: membot=%p, memtop=%p\n", membot, memtop));
+    KDEBUG((" after balloc_stram: membot=%p, memtop=%p\n", get_unaligned_ptr(membot), get_unaligned_ptr(memtop)));
 
     return ret;
 }
@@ -141,13 +141,13 @@ void getmpb(MPB * mpb)
     bmem_allowed = FALSE; /* BIOS memory handling not allowed past this point */
 #endif
     KDEBUG(("Memory map after balloc() adjustments:\n"));
-    KDEBUG(("       membot = %p\n", membot));
-    KDEBUG(("       memtop = %p\n", memtop));
+    KDEBUG(("       membot = %p\n", get_unaligned_ptr(membot)));
+    KDEBUG(("       memtop = %p\n", get_unaligned_ptr(memtop)));
 
     /* Fill out the first memory descriptor */
     themd.m_link = NULL;        /* no next memory descriptor */
-    themd.m_start = membot;
-    themd.m_length = memtop - themd.m_start;
+    themd.m_start = get_unaligned_ptr(membot);
+    themd.m_length = get_unaligned_ptr(memtop) - themd.m_start;
     themd.m_own = NULL;         /* no owner's process descriptor */
 
     mpb->mp_mfl = &themd;       /* free list set to initial MD */

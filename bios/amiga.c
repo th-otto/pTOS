@@ -1289,9 +1289,9 @@ static WORD amiga_floppy_seek(WORD track)
 /* Return TRUE if the motor timed out during switch on */
 static BOOL timeout_motoron(void)
 {
-    LONG next = hz_200 + (TIMEOUT_MOTORON / 5);
+    LONG next = get_hz_200() + (TIMEOUT_MOTORON / 5);
 
-    while (hz_200 < next)
+    while (get_hz_200() < next)
     {
         if (!(CIAAPRA & 0x20)) /* Motor on? */
             return FALSE;
@@ -1303,9 +1303,9 @@ static BOOL timeout_motoron(void)
 /* Return TRUE if the disk DMA timed out */
 static BOOL timeout_dskblk(void)
 {
-    LONG next = hz_200 + (TIMEOUT_DSKBLK / 5);
+    LONG next = get_hz_200() + (TIMEOUT_DSKBLK / 5);
 
-    while (hz_200 < next)
+    while (get_hz_200() < next)
     {
         if (INTREQR & DSKBLK)
             return FALSE;
@@ -1460,7 +1460,7 @@ static WORD amiga_floppy_decode_track(void)
     UBYTE tmp[8]; /* Temporary buffer to compute CRC */
     UWORD datacrc; /* Partial CRC of Data Field */
 #ifdef ENABLE_KDEBUG
-    ULONG hz_start = hz_200;
+    ULONG hz_start = get_hz_200();
 #endif
 
     /* Pre-compute the CRC of Data Field header */
@@ -1585,7 +1585,7 @@ static WORD amiga_floppy_decode_track(void)
 
     sectors_decoded = TRUE;
 
-    KDEBUG(("track decode time = %lu ms\n", (hz_200 - hz_start) * 5));
+    KDEBUG(("track decode time = %lu ms\n", (get_hz_200() - hz_start) * 5));
 
     return E_OK;
 }

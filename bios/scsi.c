@@ -405,7 +405,7 @@ LONG scsi_rw(UWORD rw, ULONG sector, UWORD count, UBYTE *buf, WORD dev)
                 maxsecs_per_io = FRB_SECS;
 #endif
             if (!tmp_buf) {
-                tmp_buf = dskbufp;
+                tmp_buf = get_unaligned_ptr(dskbufp);
                 if (maxsecs_per_io > DSKBUF_SECS)
                     maxsecs_per_io = DSKBUF_SECS;
             }
@@ -746,7 +746,7 @@ static int wait_dma_complete(ULONG timeout)
             if (!(TT_MFP_BASE->gpip & 0x20))/* got DMAC interrupt ? */
                 if (SCSIDMA_BASE->control & 0x80)
                     return BUS_ERROR;       /* exit iff bus error */
-            if (hz_200 >= timeout)
+            if (get_hz_200() >= timeout)
                 return TIMEOUT_ERROR;
         }
         dummy = SCSI_BASE->reset;           /* reset parity, interrupts */
@@ -758,7 +758,7 @@ static int wait_dma_complete(ULONG timeout)
 
     /* handle Falcon SCSI */
     while(MFP_BASE->gpip & 0x20)            /* until we get interrupt */
-        if (hz_200 >= timeout)
+        if (get_hz_200() >= timeout)
             return TIMEOUT_ERROR;
     dummy = fscsi_get(fscsi_reset);         /* reset parity, interrupts */
     fscsi_and(fscsi_mode, 0xfd);            /* disable DMA mode */
@@ -770,7 +770,7 @@ static int wait_dma_complete(ULONG timeout)
 static int wait_phase_change(ULONG timeout)
 {
     while(get_dma_status_reg() & 0x08)      /* phase match */
-        if (hz_200 >= timeout)
+        if (get_hz_200() >= timeout)
             return TIMEOUT_ERROR;
 
     return 0;
@@ -783,7 +783,7 @@ static int wait_req(ULONG timeout)
     {
         if (get_bus_status_reg() & 0x20)    /* got REQ ? */
             break;
-        if (hz_200 >= timeout)
+        if (get_hz_200() >= timeout)
             return TIMEOUT_ERROR;
     }
 
@@ -864,7 +864,7 @@ static int handshake(ULONG timeout)
     or_icr_reg(0x11);           /* assert ACK, gate data bus */
     while(get_bus_status_reg() & 0x20)  /* wait for REQ low */
     {
-        if (hz_200 >= timeout)
+        if (get_hz_200() >= timeout)
         {
             ret = TIMEOUT_ERROR;
             break;
@@ -929,8 +929,8 @@ static void reset_bus(BOOL write)
     }
 
     /* wait for devices to reset themselves */
-    timeout = hz_200 + RESET_TIME;
-    while(hz_200 < timeout)
+    timeout = get_hz_200() + RESET_TIME;
+    while(get_hz_200() < timeout)
         ;
 }
 
@@ -945,9 +945,9 @@ static int scsi_arbitrate(void)
     /*
      * wait for BUS FREE (BSY bit not set)
      */
-    timeout = hz_200 + BUSFREE_TIMEOUT;
+    timeout = get_hz_200() + BUSFREE_TIMEOUT;
     while (get_bus_status_reg() & 0x40)
-        if (hz_200 >= timeout)
+        if (get_hz_200() >= timeout)
             return TIMEOUT_ERROR;
 
     put_tcr_reg(0x00);              /* unassert I/O, C/D, MSG: bus free phase */
@@ -962,9 +962,9 @@ static int scsi_arbitrate(void)
             put_data_reg(hostid_bit);       /* our id into data reg */
             put_icr_reg(0x01);              /* gate it onto bus */
             or_mode_reg(0x01);              /* set ARBITRATE bit */
-            timeout = hz_200 + AIP_TIMEOUT;
+            timeout = get_hz_200() + AIP_TIMEOUT;
             while(!(get_icr_reg()&0x40))    /* wait for AIP bit to be set */
-                if (hz_200 >= timeout)
+                if (get_hz_200() >= timeout)
                     return TIMEOUT_ERROR;   /* probably broken hardware */
             arbitration_delay();
         } while(get_icr_reg()&0x20);        /* retry if we lost arbitration */
@@ -984,7 +984,7 @@ static int scsi_arbitrate(void)
 static int scsi_select(WORD device)
 {
     UBYTE devbits = hostid_bit | (1<<device);
-    ULONG timeout = hz_200 + SELECTION_TIMEOUT;
+    ULONG timeout = get_hz_200() + SELECTION_TIMEOUT;
 
     or_icr_reg(0x02);                   /* assert ATN */
     put_data_reg(devbits);              /* device bits to data reg */
@@ -993,7 +993,7 @@ static int scsi_select(WORD device)
     and_icr_reg(0xf7);                  /* turn off BSY so target can take over */
     bus_settle_delay();
     while(!(get_bus_status_reg() & 0x40)) /* wait for BSY bit */
-        if (hz_200 >= timeout)
+        if (get_hz_200() >= timeout)
             return TIMEOUT_ERROR;
     and_icr_reg(0x02);                  /* turn off everything except ATN */
 
@@ -1002,7 +1002,7 @@ static int scsi_select(WORD device)
 
 static int handle_data_out(CMDINFO *info)
 {
-    ULONG timeout = hz_200 + info->xfer_time;
+    ULONG timeout = get_hz_200() + info->xfer_time;
     UBYTE *p;
     int ret;
 
@@ -1029,7 +1029,7 @@ static int handle_data_out(CMDINFO *info)
 
 static int handle_data_in(CMDINFO *info)
 {
-    ULONG timeout = hz_200 + info->xfer_time;
+    ULONG timeout = get_hz_200() + info->xfer_time;
     UBYTE *p;
     int ret;
 
@@ -1060,7 +1060,7 @@ static int handle_data_in(CMDINFO *info)
 
 static int handle_command(CMDINFO *info)
 {
-    ULONG timeout = hz_200 + SHORT_TIMEOUT;
+    ULONG timeout = get_hz_200() + SHORT_TIMEOUT;
     UBYTE *cdb = info->cdbptr;
     int ret;
 
@@ -1076,7 +1076,7 @@ static int handle_command(CMDINFO *info)
 
 static int handle_status(CMDINFO *info)
 {
-    ULONG timeout = hz_200 + SHORT_TIMEOUT;
+    ULONG timeout = get_hz_200() + SHORT_TIMEOUT;
     int ret;
 
     set_input_phase(STATUS_PHASE);
@@ -1115,7 +1115,7 @@ static int handle_status(CMDINFO *info)
  */
 static int handle_msg_out(CMDINFO *info)
 {
-    ULONG timeout = hz_200 + SHORT_TIMEOUT;
+    ULONG timeout = get_hz_200() + SHORT_TIMEOUT;
     int i, ret;
 
     set_output_phase(MSG_OUT_PHASE);
@@ -1148,7 +1148,7 @@ static int handle_msg_out(CMDINFO *info)
  */
 static int handle_msg_in(CMDINFO *info)
 {
-    ULONG timeout = hz_200 + SHORT_TIMEOUT;
+    ULONG timeout = get_hz_200() + SHORT_TIMEOUT;
     int i, msglen, ret;
     UBYTE msgbyte;
 
@@ -1276,7 +1276,7 @@ static LONG do_scsi_io(WORD dev, CMDINFO *info)
         {
             /* set starting phase to match bus before target gets going */
             set_input_phase(DATA_OUT_PHASE);
-            timeout = hz_200 + SHORT_TIMEOUT;
+            timeout = get_hz_200() + SHORT_TIMEOUT;
             if ((ret=wait_phase_change(timeout)) == 0)
             {
                 if ((ret=scsi_dispatcher(info)) == 0)

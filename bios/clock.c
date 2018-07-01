@@ -913,8 +913,8 @@ static void igetregs(void)
     ikbdws(0, (const UBYTE*) &iclkbuf);
 
     /* wait until the interrupt */
-    timeout = hz_200 + IKBD_CLOCK_TIMEOUT;
-    while(!iclk_ready && (timeout > hz_200))
+    timeout = get_hz_200() + IKBD_CLOCK_TIMEOUT;
+    while(!iclk_ready && (timeout > get_hz_200()))
         ;
 }
 

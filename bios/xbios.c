@@ -406,8 +406,8 @@ static ULONG rseed;
 static LONG random(void)
 {
     if(rseed == 0) {
-        rseed = hz_200 << 16;
-        rseed += hz_200;
+        rseed = get_hz_200() << 16;
+        rseed += get_hz_200();
     }
     rseed *= 3141592621UL;
     rseed ++;

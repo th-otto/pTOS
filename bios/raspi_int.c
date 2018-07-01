@@ -91,7 +91,7 @@ void raspi_timer3_handler(void)
 
 void int_timerc(void)
 {
-    hz_200++;
+    set_hz_200(get_hz_200() + 1);
     timer_c_sieve = (timer_c_sieve << 1) | (timer_c_sieve >> 15);
     if (timer_c_sieve & 4) // If the highest bit in any nibble is 1, we are in the 4th call
     {

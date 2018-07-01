@@ -677,10 +677,10 @@ static void init_bconmap(void)
 
     /* set up to use mapped device values */
     maptabptr = &maptable[bconmap_root.mapped_device-BCONMAP_START_HANDLE];
-    bconstat_vec[1] = maptabptr->Bconstat;
-    bconin_vec[1] = maptabptr->Bconin;
-    bcostat_vec[1] = maptabptr->Bcostat;
-    bconout_vec[1] = maptabptr->Bconout;
+    set_unaligned(bconstat_vec[1], maptabptr->Bconstat);
+    set_unaligned(bconin_vec[1], maptabptr->Bconin);
+    set_unaligned(bcostat_vec[1], maptabptr->Bcostat);
+    set_unaligned(bconout_vec[1], maptabptr->Bconout);
     rsconfptr = maptabptr->Rsconf;
     rs232iorecptr = maptabptr->Iorec;
 }
@@ -763,19 +763,19 @@ LONG bconmap(WORD dev)
      * any changes that may have been made to them.
      */
     maptabptr = &maptable[old_dev-BCONMAP_START_HANDLE];
-    maptabptr->Bconstat = bconstat_vec[1];
-    maptabptr->Bconin = bconin_vec[1];
-    maptabptr->Bcostat = bcostat_vec[1];
-    maptabptr->Bconout = bconout_vec[1];
+    maptabptr->Bconstat = get_unaligned(bconstat_vec[1]);
+    maptabptr->Bconin = get_unaligned(bconin_vec[1]);
+    maptabptr->Bcostat = get_unaligned(bcostat_vec[1]);
+    maptabptr->Bconout = get_unaligned(bconout_vec[1]);
     maptabptr->Rsconf = rsconfptr;
     maptabptr->Iorec = rs232iorecptr;
 
     /* now we update the low-memory vectors */
     maptabptr = &maptable[map_index];
-    bconstat_vec[1] = maptabptr->Bconstat;
-    bconin_vec[1] = maptabptr->Bconin;
-    bcostat_vec[1] = maptabptr->Bcostat;
-    bconout_vec[1] = maptabptr->Bconout;
+    set_unaligned(bconstat_vec[1], maptabptr->Bconstat);
+    set_unaligned(bconin_vec[1], maptabptr->Bconin);
+    set_unaligned(bcostat_vec[1], maptabptr->Bcostat);
+    set_unaligned(bconout_vec[1], maptabptr->Bconout);
     rsconfptr = maptabptr->Rsconf;
     rs232iorecptr = maptabptr->Iorec;
 

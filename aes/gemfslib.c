@@ -589,7 +589,7 @@ WORD fs_input(BYTE *pipath, BYTE *pisel, WORD *pbutton, BYTE *pilabel)
     obj = tree + DRIVE_OFFSET;
     for (drive = 0, bitmask = 1; drive < NM_DRIVES; drive++, bitmask <<= 1, obj++)
     {
-        if (drvbits & bitmask)
+        if (get_unaligned(drvbits) & bitmask)
             obj->ob_state &= ~DISABLED;
         else
             obj->ob_state |= DISABLED;

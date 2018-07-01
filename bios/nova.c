@@ -319,17 +319,17 @@ static void init_et4000_resolution(void)
 #define VBL_LIMIT   30  /* nominally: 70 Hz, i.e. 35 VBLs in 0.5s */
 static void count_vbls(void)
 {
-    LONG end = hz_200 + VBL_TIMEOUT;
+    ULONG end = get_hz_200() + VBL_TIMEOUT;
     int vbl_count = 0;
 
     KDEBUG(("count_vbls(): "));
-    while (hz_200 < end)
+    while (get_hz_200() < end)
     {
          /* wait for Vertical Retrace bit to go low */
         while (VGAREG(IS1_RC) & 0x08)
         {
             /* time out in case bit is stuck */
-            if (hz_200 >= end)
+            if (get_hz_200() >= end)
                 break;
         }
 
@@ -337,7 +337,7 @@ static void count_vbls(void)
         while (!(VGAREG(IS1_RC) & 0x08))
         {
             /* time out in case bit is stuck */
-            if (hz_200 >= end)
+            if (get_hz_200() >= end)
                 break;
         }
 

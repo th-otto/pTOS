@@ -14,12 +14,30 @@
  * use it to filter out definitions that would generate syntax
  * errors in asm.
  */
+#ifndef ASMDEFS_H
+#define ASMDEFS_H 1
+
 #define ASM_SOURCE
 
 /* general-purpose configuration file */
 #include "config.h"
 
 #ifdef __arm__
+
+    .macro get_unaligned reg,var,scratch
+    ldr     \reg, =\var
+    ldrh    \scratch, [\reg, #2]
+    ldrh    \reg, [\reg]
+    orr     \reg, \reg, \scratch, lsl #16
+    .endm
+
+    .macro set_unaligned reg,var,scratch
+    ldr     \scratch, =\var
+    strh    \reg, [\scratch]
+    ror     \reg, \reg, #16
+    strh    \reg, [\scratch, #2]
+    ror     \reg, \reg, #16
+    .endm
 
 #else
 
@@ -80,3 +98,5 @@
 /* a.out objects have no .rodata section, default to .text */
 #define SECTION_RODATA .text
 #endif
+
+#endif /* ASMDEFS_H */

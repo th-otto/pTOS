@@ -22,6 +22,7 @@
 #include "mem.h"
 #include "string.h"
 #include "kprint.h"
+#include "../bios/tosvars.h"
 
 extern BCB *bufl[];     /* buffer lists - two lists:  FAT and dir/data */
 
@@ -53,7 +54,7 @@ void bufl_init(void)
     char *p;
     LONG n;
 
-    n = sizeof(BCB) + pun_ptr->max_sect_siz;
+    n = sizeof(BCB) + ((PUN_INFO *)get_unaligned_ptr(pun_ptr))->max_sect_siz;
     p = xmalloc(2L*NUMBUFS*n);
     if (!p)
         panic("bufl_init(%ld): no memory\n",2L*NUMBUFS*n);

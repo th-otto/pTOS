@@ -43,7 +43,6 @@
         .extern _frclock
         .extern _vblqueue
         .extern _swv_vec
-        .extern _hz_200
         .extern etv_timer
         .extern etv_critic
         .extern _timer_ms
@@ -106,10 +105,10 @@ no_vdi:
 
 _int_vbl:
         push {r0-r1}
-        ldr     r0, =_frclock           // increase num of happened ints
-        ldrh    r1, [r0]
+        // increase num of happened ints
+        get_unaligned r1,_frclock,r0
         add     r1, r1, #1
-        strh    r1, [r0]
+        set_unaligned r1,_frclock,r0
 
         ldr     r0,	=_vblsem            // check vbl semaphore (TODO: non-atomic)
         ldrh    r1, [r0]
@@ -117,12 +116,12 @@ _int_vbl:
         strh    r1, [r0]
         bmi     vbl_end                 // if VBl routine disabled -> end
 
-        push {r2-r12,r14}               // save remaining registers
+        push {r2-r12,lr}                // save remaining registers
 
-        ldr     r0,	=_vbclock           // count number of VBL interrupts
-        ldrh    r1, [r0]
+        // count number of VBL interrupts
+        get_unaligned r1,_vbclock,r0
         add     r1, r1, #1
-        strh    r1, [r0]
+        set_unaligned r1,_vbclock,r0
 
         bl      _blink                  // blink cursor
 
@@ -136,13 +135,14 @@ _int_vbl:
         ldrhs   r0, [r1]
         beq     vbl_no_queue
         sub     r0, r0, #1
-        ldr     r1,	=_vblqueue
-        ldr     r1, [r1]
+        get_unaligned r1,_vblqueue,r0
 vbl_queue_loop:
-        ldr     r2, [r1], #4
+        ldrh    r2, [r1], #2
+        mov     r2, r2, lsl #16
+        ldrh    r2, [r1], #2
+        ror     r2, r2, #16
         cmp     r2, #0
         beq     vbl_queue_next
-        ldr     r2, [r2]
         blx     r2
 vbl_queue_next:
         subs    r0, #1
@@ -152,7 +152,7 @@ vbl_no_queue:
         // screen hardcopy
         // (not done)
 
-        pop {r2-r12,r14}                // restore registers
+        pop {r2-r12,lr}                 // restore registers
 vbl_end:
         ldr     r0,	=_vblsem            // release vbl semaphore (TODO: non-atomic)
         ldrh    r1, [r0]

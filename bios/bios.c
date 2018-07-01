@@ -361,19 +361,19 @@ static void bios_init(void)
 
     /* misc. variables */
     dumpflg = -1;
-    sysbase = (LONG) os_entry;
-    savptr = (LONG) trap_save_area;
+    set_unaligned(sysbase, (LONG) os_entry);
+    set_unaligned(savptr, (LONG) trap_save_area);
     etv_timer = (void(*)(int)) just_rts;
     etv_critic = default_etv_critic;
     etv_term = just_rts;
 
     /* setup VBL queue */
     nvbls = 8;
-    vblqueue = vbl_list;
+    set_unaligned(vblqueue, vbl_list);
     {
         int i;
         for(i = 0 ; i < 8 ; i++) {
-            vbl_list[i] = 0;
+            set_unaligned(vbl_list[i], 0);
         }
     }
 
@@ -479,11 +479,11 @@ static void bios_init(void)
 
     /* set start of user interface */
 #if WITH_AES
-    exec_os = ui_start;
+    set_unaligned(exec_os, ui_start);
 #elif WITH_CLI
-    exec_os = coma_start;
+    set_unaligned(exec_os, coma_start);
 #else
-    exec_os = NULL;
+    set_unaligned(exec_os, NULL);
 #endif
 
     KDEBUG(("osinit_before_xmaddalt()\n"));
@@ -593,7 +593,7 @@ struct rrcode {
 
 static void run_reset_resident(void)
 {
-    const struct rrcode *p = (const struct rrcode *)phystop;
+    const struct rrcode *p = (const struct rrcode *)get_unaligned(phystop);
 
     for (--p; p > (struct rrcode *)&etv_timer; p--)
     {
@@ -801,11 +801,11 @@ void biosmain(void)
     if(cmdload != 0) {
         /* Pexec a program called COMMAND.PRG */
         trap1_pexec(PE_LOADGO, "COMMAND.PRG", "", default_env);
-    } else if (exec_os) {
+    } else if (get_unaligned_ptr(exec_os)) {
         /* start the default (ROM) shell */
         PD *pd;
         pd = (PD *) trap1_pexec(PE_BASEPAGEFLAGS, (char*)PF_STANDARD, "", default_env);
-        pd->p_tbase = (BYTE *) exec_os;
+        pd->p_tbase = (BYTE *) get_unaligned_ptr(exec_os);
         pd->p_tlen = pd->p_dlen = pd->p_blen = 0;
         trap1_pexec(PE_GO, "", pd, "");
     }
@@ -874,7 +874,7 @@ LONG bconstat(WORD handle)        /* GEMBIOS character_input_status */
 #endif
 
     if ((handle >= 0) && (handle <= 7))
-        return protect_v(bconstat_vec[handle]);
+        return protect_v((LONG (*)(void))get_unaligned(bconstat_vec[handle]));
     return 0L;
 }
 
@@ -918,7 +918,7 @@ LONG bconin(WORD handle)
 #endif
 
     if ((handle >= 0) && (handle <= 7))
-        return protect_v(bconin_vec[handle]);
+        return protect_v((LONG (*)(void))get_unaligned(bconin_vec[handle]));
     return 0L;
 }
 
@@ -951,7 +951,7 @@ LONG bconout(WORD handle, WORD what)
 #endif
 
     if ((handle >= 0) && (handle <= 7))
-        return protect_ww((PFLONG)bconout_vec[handle], handle, what);
+        return protect_ww((PFLONG)get_unaligned(bconout_vec[handle]), handle, what);
     return 0L;
 }
 
@@ -989,7 +989,7 @@ void bconout_str(WORD handle, const char* str)
 
 LONG lrwabs(WORD r_w, UBYTE *adr, WORD numb, WORD first, WORD drive, LONG lfirst)
 {
-    return protect_wlwwwl((PFLONG)hdv_rw, r_w, (LONG)adr, numb, first, drive, lfirst);
+    return protect_wlwwwl((PFLONG)get_unaligned(hdv_rw), r_w, (LONG)adr, numb, first, drive, lfirst);
 }
 
 #if DBGBIOS
@@ -1064,7 +1064,7 @@ static LONG bios_6(void)
 
 LONG getbpb(WORD drive)
 {
-    return protect_w(hdv_bpb, drive);
+    return protect_w((LONG (*)(WORD))get_unaligned(hdv_bpb), drive);
 }
 
 #if DBGBIOS
@@ -1103,7 +1103,7 @@ LONG bcostat(WORD handle)       /* GEMBIOS character_output_status */
 #endif
 
     if ((handle >= 0) && (handle <= 7))
-        return protect_v(bcostat_vec[handle]);
+        return protect_v((LONG (*)(void))get_unaligned(bcostat_vec[handle]));
     return 0L;
 }
 
@@ -1128,7 +1128,7 @@ static LONG bios_8(WORD handle)
 
 LONG mediach(WORD drv)
 {
-    return protect_w(hdv_mediach, drv);
+    return protect_w((LONG (*)(WORD))get_unaligned(hdv_mediach), drv);
 }
 
 #if DBGBIOS
