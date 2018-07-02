@@ -495,7 +495,7 @@ static WORD load_user_icons(void)
         return -1;
     }
 
-    hdr = (RSHDR *)(AP_1RESV);
+    hdr = global.ap_rscmem;
     if (hdr->rsh_nib < BUILTIN_IBLKS)   /* must have at least the minimum set */
     {
         KDEBUG(("too few user desktop icons (%d)\n",hdr->rsh_nib));
@@ -1145,7 +1145,7 @@ static void set_background(void)
         tree->ob_spec.index = G.g_patcol[n].window | BORDER_TEXT_COLOURS;
     G.g_screen[DROOT].ob_spec.index = G.g_patcol[n].desktop | BORDER_TEXT_COLOURS;
 #else
-    G.g_screen[DROOT].ob_spec.index = AP_PRIVATE;
+    G.g_screen[DROOT].ob_spec.index = global.ap_private;
 #endif
 }
 

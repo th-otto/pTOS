@@ -16,6 +16,9 @@ typedef struct aesglobal {
     WORD ap_version;                /* AES version */
     WORD ap_count;                  /* max # of concurrent applications */
     WORD ap_id;                     /* application id */
+#ifdef __arm__
+	WORD pad;
+#endif
     LONG ap_private;                /* for use by application */
     OBJECT **ap_ptree;              /* pointer to array of tree addresses */
                                 /* the following are not advertised to applications */
